@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/alexm4tos/code-bank/domain"
+	"github.com/alexm4tos/code-bank/infrastructure/grpc/server"
+	"github.com/alexm4tos/code-bank/infrastructure/kafka"
 	"github.com/alexm4tos/code-bank/infrastructure/repository"
 	"github.com/alexm4tos/code-bank/usecase"
 	_ "github.com/lib/pq"
@@ -16,29 +17,24 @@ func main() {
 
 	defer db.Close()
 
-	creditCard := domain.NewCreditCard()
-	creditCard.Number = "1234"
-	creditCard.Name = "Alex"
-	creditCard.ExpirationYear = 2030
-	creditCard.ExpirationMonth = 10
-	creditCard.CVV = 123
-	creditCard.Limit = 1000
-	creditCard.Balance = 0
+	producer := setupKafkaProducer()
+	processTransactionUseCase := setupTransactionUseCase(db, producer)
 
-	repository := repository.NewTransactionRepositoryDb(db)
-	err := repository.CreateCreditCard(*creditCard)
-
-	if err != nil {
-		fmt.Println("Error creating credit card: ", err)
-	} else {
-		fmt.Println("New credit card created")
-	}
+	serveGrpc(processTransactionUseCase)
 }
 
-func setupTransactionUseCase(db *sql.DB) usecase.UseCaseTransaction {
+func setupKafkaProducer() kafka.KafkaProducer {
+	producer := kafka.NewKafkaProducer()
+	producer.SetupProducer("host.docker.internal:9094")
+
+	return producer
+}
+
+func setupTransactionUseCase(db *sql.DB, producer kafka.KafkaProducer) usecase.UseCaseTransaction {
 	transactionRepository := repository.NewTransactionRepositoryDb(db)
 
 	transactionUseCase := usecase.NewUseCaseTransaction(transactionRepository)
+	transactionUseCase.KafkaProducer = producer
 
 	return transactionUseCase
 }
@@ -59,4 +55,13 @@ func setupDb() *sql.DB {
 	}
 
 	return db
+}
+
+func serveGrpc(processTransactionUseCase usecase.UseCaseTransaction) {
+	grpcServer := server.NewGRPCServer()
+	grpcServer.ProcessTransactionUseCase = processTransactionUseCase
+
+	fmt.Println("Starting gRPC server...")
+
+	grpcServer.Serve()
 }
