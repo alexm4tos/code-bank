@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/alexm4tos/code-bank/domain"
-	"github.com/alexm4tos/code-bank/domain/infrastructure/repository"
+	"github.com/alexm4tos/code-bank/infrastructure/repository"
 	"github.com/alexm4tos/code-bank/usecase"
 	_ "github.com/lib/pq"
 )

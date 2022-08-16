@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/alexm4tos/code-bank/domain"
-	"github.com/alexm4tos/code-bank/domain/infrastructure/kafka"
 	"github.com/alexm4tos/code-bank/dto"
+	"github.com/alexm4tos/code-bank/infrastructure/kafka"
 )
 
 type UseCaseTransaction struct {
